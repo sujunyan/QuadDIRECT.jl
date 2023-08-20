@@ -526,12 +526,15 @@ Further refinement of `root`. See [`analyze`](@ref) for details.
 function analyze!(root::Box, f::Function, x0, splits, lower, upper; rtol=1e-3, atol=0.0, fvalue=-Inf, maxevals=2500, print_interval=typemax(Int), kwargs...)
     analyze!(root, CountedFunction(f), x0, splits, lower, upper; rtol=rtol, atol=atol, fvalue=fvalue, maxevals=maxevals, print_interval=print_interval, kwargs...)
 end
-function analyze!(root::Box{T}, f::WrappedFunction, x0, splits, lower, upper; rtol=1e-3, atol=0.0, fvalue=-Inf, maxevals=2500, print_interval=typemax(Int), nquasinewton=qnthresh(ndims(root)), kwargs...) where T
+function analyze!(root::Box{T}, f::WrappedFunction, x0, splits, lower, upper; rtol=1e-3, atol=0.0, fvalue=-Inf, maxevals=2500, print_interval=typemax(Int), nquasinewton=qnthresh(ndims(root)), max_tol_counter = 0, kwargs...) where T
     box = minimum(root)
     boxval = value(box)
     lastval = typemax(boxval)
     tol_counter = 0
     lastprint = 0
+    if max_tol_counter == 0
+        max_tol_counter = ndims(root)
+    end
     baseline_evals = len = lenold = length(leaves(root))
     if baseline_evals == numevals(f)
         baseline_evals = 0   # already counted
@@ -546,7 +549,7 @@ function analyze!(root::Box{T}, f::WrappedFunction, x0, splits, lower, upper; rt
     nsweep, nqn = baseline_evals+numevals(f), 0
     thresh = sqrt(eps(T))
     nsplits = zeros(Int, ndims(root))
-    while boxval > fvalue && (tol_counter <= ndims(root) || !used_quasinewton) && len < maxevals
+    while boxval > fvalue && (tol_counter <= max_tol_counter || !used_quasinewton) && len < maxevals
         lastval = boxval
         numeval0 = numevals(f)
         _, splitboxes = sweep!(root, f, x0, splits, lower, upper; extrapolate=extrapolate, fvalue=fvalue, kwargs...)
